@@ -43,7 +43,7 @@ int runCommand(
         fullCommand << i << " ";
     }
     std::string fullCommandStr = fullCommand.str();
-    log_info("Running command %s(with %d seconds timeout)...", fullCommandStr.c_str(), timeout);
+    log_debug("Running command %s(with %d seconds timeout)...", fullCommandStr.c_str(), timeout);
 
     int ret = MlmSubprocess::output(args, stdout, stderr, timeout);
 
@@ -55,10 +55,10 @@ int runCommand(
     }
 
     if (ret == 0) {
-        log_info("Execution of command %ssucceeded.", fullCommandStr.c_str());
+        log_debug("Execution of command %ssucceeded.", fullCommandStr.c_str());
     }
     else {
-        log_error("Execution of command %sfailed with code %d.", fullCommandStr.c_str(), ret);
+        log_warning("Execution of command %sfailed with code %d.", fullCommandStr.c_str(), ret);
     }
 
     return ret;
