@@ -31,6 +31,9 @@ int runCommand(
     for (const auto& i : args) {
         fullCommand << i << " ";
     }
+
+    int msTimeout = timeout * 1000;
+
     std::string fullCommandStr = fullCommand.str();
     log_info("Running command %s(with %d seconds timeout)...", fullCommandStr.c_str(), timeout);
 
@@ -40,7 +43,7 @@ int runCommand(
         return -1;
     }
 
-    auto ret = proc.wait(timeout);
+    auto ret = proc.wait(msTimeout);
     if (!ret) {
         log_error(ret.error().c_str());
         return -1;
