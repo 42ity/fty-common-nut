@@ -35,7 +35,7 @@ static std::map<ScanProtocol, std::string> s_scanProtocols{
 static std::map<ScanProtocol, std::string> s_driverProtocols{
     {SCAN_PROTOCOL_NETXML, "netxml-ups"},
     {SCAN_PROTOCOL_SNMP, "snmp-ups"},
-    {SCAN_PROTOCOL_SNMP_DMF, "snmp-ups"},
+    {SCAN_PROTOCOL_SNMP_DMF, "snmp-ups-dmf"},
 };
 
 

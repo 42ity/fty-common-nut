@@ -41,7 +41,8 @@ static const std::map<secw::Snmpv3PrivProtocol, std::string> s_privMapping{
 
 KeyValues convertSecwDocumentToKeyValues(const secw::DocumentPtr& doc, const std::string& driver)
 {
-    if (driver.find_first_of("snmp-ups") == 0) {
+    if ( (driver.find_first_of("snmp-ups") == 0)
+        || (driver.find_first_of("snmp-ups-dmf") == 0) ) {
         secw::Snmpv1Ptr snmpv1 = secw::Snmpv1::tryToCast(doc);
         secw::Snmpv3Ptr snmpv3 = secw::Snmpv3::tryToCast(doc);
 
@@ -67,7 +68,7 @@ KeyValues convertSecwDocumentToKeyValues(const secw::DocumentPtr& doc, const std
             return output;
         } else {
             throw std::runtime_error(
-                (std::string("Bad security wallet document type ") + doc->getType() + " for driver snmp-ups.").c_str());
+                (std::string("Bad security wallet document type ") + doc->getType() + " for SNMP driver.").c_str());
         }
     } else if (driver == "etn-nut-powerconnect") {
         secw::UserAndPasswordPtr creds = secw::UserAndPassword::tryToCast(doc);
