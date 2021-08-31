@@ -35,7 +35,7 @@ int runCommand(
     int msTimeout = timeout * 1000;
 
     std::string fullCommandStr = fullCommand.str();
-    log_info("Running command %s(with %d seconds timeout)...", fullCommandStr.c_str(), timeout);
+    log_info("Running command %s %s(with %d seconds timeout)...", cmd.c_str(), fullCommandStr.c_str(), timeout);
 
     Process proc(cmd, args, Capture::Out | Capture::Err);
     if (auto pid = proc.run(); !pid) {
@@ -60,9 +60,9 @@ int runCommand(
     }
 
     if (*ret == 0) {
-        log_info("Execution of command %ssucceeded.", fullCommandStr.c_str());
+        log_info("Execution of command %s %s succeeded.", cmd.c_str(), fullCommandStr.c_str());
     } else {
-        log_error("Execution of command %sfailed with code %d.", fullCommandStr.c_str(), *ret);
+        log_error("Execution of command %s %s failed with code %d.", cmd.c_str(), fullCommandStr.c_str(), *ret);
     }
 
     return *ret;
