@@ -28,6 +28,7 @@ int runCommand(
     const std::string& cmd, const Process::Arguments& args, std::string& stdout, std::string& stderr, int timeout)
 {
     std::stringstream fullCommand;
+    fullCommand << cmd << " ";
     for (const auto& i : args) {
         fullCommand << i << " ";
     }
@@ -35,37 +36,61 @@ int runCommand(
     int msTimeout = timeout * 1000;
 
     std::string fullCommandStr = fullCommand.str();
-    log_info("Running command %s (with %d seconds timeout)...", cmd.c_str(), timeout);
+    logInfo("Running command {} (with {} seconds timeout)...", fullCommandStr, timeout);
 
     Process proc(cmd, args, Capture::Out | Capture::Err);
     if (auto pid = proc.run(); !pid) {
-        log_error(pid.error().c_str());
+        logError("{}", pid.error());
         return -1;
     }
 
-    auto ret = proc.wait(msTimeout);
-    if (!ret) {
-        log_error(ret.error().c_str());
-        return -1;
+    const int WAIT_TIMEOUT_LOOP = 2000;
+    int count = msTimeout / WAIT_TIMEOUT_LOOP;
+    if (count < 1) count = 1;
+    bool resulOk = false;
+    std::string tmp;
+    while (count > 0) {
+        auto res = proc.wait(WAIT_TIMEOUT_LOOP);
+        if (!res && res.error() == "timeout") {
+            count --;
+            tmp += proc.readAllStandardOutput();
+            logTrace("Wait process timeout, count={} tmp.size={}", count, tmp.size());
+            continue;
+        } else if (!res) {
+            logWarn("Cannot wait process, error: {}", res.error());
+            break;
+        } else {
+            tmp += proc.readAllStandardOutput();
+            logTrace("Wait process count={} *res={} tmp.size={}", count, *res, tmp.size());
+            resulOk = (*res == 0);
+            break;
+        }
     }
 
-    stdout = proc.readAllStandardOutput();
+    if (resulOk) {
+        stdout = tmp;
+    }
     stderr = proc.readAllStandardError();
 
     if (!stdout.empty()) {
-        log_trace("Standard output:\n%s", stdout.c_str());
+        logTrace("Standard output:\n{}", stdout);
     }
     if (!stderr.empty()) {
-        log_trace("Standard error:\n%s", stderr.c_str());
+        logTrace("Standard error:\n{}", stderr);
     }
 
-    if (*ret == 0) {
-        log_info("Execution of command %s succeeded.", cmd.c_str());
-    } else {
-        log_error("Execution of command %s failed with code %d.", cmd.c_str(), *ret);
+    if (!resulOk) {
+        if (count < 0) {
+            logError("Execution of command {} failed with timeout.", cmd);
+            return -2;
+        }
+        else {
+            logError("Execution of command {} failed during waiting", cmd);
+            return -3;
+        }
     }
-
-    return *ret;
+    logInfo("Execution of command {} succeeded.", cmd);
+    return 0;
 }
 
 } // namespace fty::nut::priv
