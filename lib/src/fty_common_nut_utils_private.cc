@@ -48,29 +48,35 @@ int runCommand(
     int count = msTimeout / WAIT_TIMEOUT_LOOP;
     if (count < 1) count = 1;
     bool resulOk = false;
-    std::string tmp;
+    std::string tmpOutput, tmpError;
     while (count > 0) {
         auto res = proc.wait(WAIT_TIMEOUT_LOOP);
-        if (!res && res.error() == "timeout") {
-            count --;
-            tmp += proc.readAllStandardOutput();
-            logTrace("Wait process timeout, count={} tmp.size={}", count, tmp.size());
-            continue;
-        } else if (!res) {
-            logWarn("Cannot wait process, error: {}", res.error());
-            break;
+        if (!res) {
+            if (res.error() == "timeout") {
+                count --;
+                tmpOutput += proc.readAllStandardOutput();
+                tmpError  += proc.readAllStandardError();
+                logTrace("Wait process timeout, count={} tmpOutput.size={} tmpError.size={}",
+                    count, tmpOutput.size(), tmpError.size());
+            }
+            else {
+                logWarn("Cannot wait process, error: {}", res.error());
+                break;
+            }
         } else {
-            tmp += proc.readAllStandardOutput();
-            logTrace("Wait process count={} *res={} tmp.size={}", count, *res, tmp.size());
+            tmpOutput += proc.readAllStandardOutput();
+            tmpError  += proc.readAllStandardError();
+            logTrace("Wait process count={} *res={} tmpOutput.size={} tmpError.size={}",
+                count, *res, tmpOutput.size(), tmpError.size());
             resulOk = (*res == 0);
             break;
         }
     }
 
     if (resulOk) {
-        stdout = tmp;
+        stdout = tmpOutput;
+        stderr = tmpError;
     }
-    stderr = proc.readAllStandardError();
 
     if (!stdout.empty()) {
         logTrace("Standard output:\n{}", stdout);
