@@ -32,11 +32,16 @@ static const std::map<secw::Snmpv3SecurityLevel, std::string> s_secMapping{
 static const std::map<secw::Snmpv3AuthProtocol, std::string> s_authMapping{
     {secw::MD5, "MD5"},
     {secw::SHA, "SHA"},
+    {secw::SHA256, "SHA256"},
+    {secw::SHA384, "SHA384"},
+    {secw::SHA512, "SHA512"},
 };
 
 static const std::map<secw::Snmpv3PrivProtocol, std::string> s_privMapping{
     {secw::DES, "DES"},
     {secw::AES, "AES"},
+    {secw::AES192, "AES192"},
+    {secw::AES256, "AES256"},
 };
 
 KeyValues convertSecwDocumentToKeyValues(const secw::DocumentPtr& doc, const std::string& driver)
