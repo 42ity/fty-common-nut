@@ -75,43 +75,44 @@ static std::string performSingleMapping(const KeyValues& mapping, const std::str
 KeyValues performMapping(const KeyValues& mapping, const KeyValues& values, int index)
 {
     const static std::regex overrideRegex(R"xxx((device|ambient)\.([^[:digit:]].*))xxx", std::regex::optimize);
-    const std::string       strIndex = std::to_string(index);
+    const std::string strIndex = std::to_string(index);
 
     KeyValues mappedValues;
 
     for (auto value : values) {
         const std::string mappedKey = performSingleMapping(mapping, value.first, index);
 
-        log_trace("%s: got mappedKey '%s'", __func__, mappedKey.c_str());
+        logTrace("{}: got mappedKey '{}'", __func__, mappedKey);
 
         // Let daisy-chained device data override host device data (device.<id>.<property> => device.<property> or
         // <property>).
         std::smatch matches;
         if (index > 0 && std::regex_match(value.first, matches, overrideRegex)) {
-            log_trace("performMapping: match1 = %s, match2 = %s, match3 = %s", matches.str(1).c_str(),
-                matches.str(2).c_str(), matches.str(3).c_str());
+            logTrace("performMapping: match1 = {}, match2 = {}, match3 = {}", matches.str(1), matches.str(2), matches.str(3));
             if (values.count(matches.str(1) + "." + strIndex + "." + matches.str(2))) {
-                log_trace(
-                    "Ignoring overriden property '%s' during mapping (daisy-chain override).", value.first.c_str());
+                logTrace("Ignoring overriden property '{}' during mapping (daisy-chain override).", value.first);
                 continue;
             }
         }
 
         // Let input.L1.current override input.current (3-phase UPS).
         if (value.first == "input.current" && values.count("input.L1.current")) {
-            log_trace("Ignoring overriden property '%s' during mapping (3-phase UPS input current override).",
-                value.first.c_str());
+            logTrace("Ignoring overriden property '{}' during mapping (3-phase UPS input current override).", value.first);
             continue;
         }
 
         if (!mappedKey.empty()) {
-            log_trace("Mapped property '%s' to '%s' (value='%s').", value.first.c_str(), mappedKey.c_str(),
-                value.second.c_str());
-            mappedValues.emplace(mappedKey, value.second);
+            std::string val = value.second;
+            // HOTFIX: Normalize manufacturer for uuid calulation (SET UPPER CASE)
+            if (mappedKey == "manufacturer") {
+                std::transform(val.begin(), val.end(), val.begin(), ::toupper);
+            }
+            logTrace("Mapped property '{}' to '{}' (value='{}').", value.first, mappedKey, val);
+            mappedValues.emplace(mappedKey, val);
         }
     }
 
-    log_trace("Mapped %d/%d properties.", mappedValues.size(), values.size());
+    logTrace("Mapped {}/{} properties.", mappedValues.size(), values.size());
     return mappedValues;
 }
 
