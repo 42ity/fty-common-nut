@@ -20,7 +20,7 @@
 */
 
 #include "fty_common_nut_convert.h"
-#include "cxxtools/serializationinfo.h"
+#include <cxxtools/serializationinfo.h>
 #include <fstream>
 #include <fty_log.h>
 #include <iostream>
