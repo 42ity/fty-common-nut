@@ -20,11 +20,12 @@
 */
 
 #include "fty_common_nut_convert.h"
-#include <cxxtools/jsondeserializer.h>
+#include <cxxtools/serializationinfo.h>
 #include <fstream>
 #include <fty_log.h>
 #include <iostream>
 #include <regex>
+#include <fty_common_json.h>
 
 namespace fty::nut {
 
@@ -117,26 +118,18 @@ KeyValues performMapping(const KeyValues& mapping, const KeyValues& values, int 
 
 KeyValues loadMapping(const std::string& file, const std::string& type)
 {
-    KeyValues         result;
+    KeyValues result;
     std::stringstream err;
 
-    std::ifstream input(file);
-    if (!input) {
-        err << "Error opening file '" << file << "'";
-        throw std::runtime_error(err.str());
-    }
-
-    // Parse JSON.
     cxxtools::SerializationInfo si;
-    cxxtools::JsonDeserializer  deserializer(input);
     try {
-        deserializer.deserialize();
+        // open file and parse JSON
+        JSON::readFromFile(file, si);
     } catch (std::exception& e) {
-        err << "Couldn't parse mapping file '" << file << "': " << e.what() << ".";
-        throw std::runtime_error(err.str());
+        throw std::runtime_error(e.what());
     }
 
-    const cxxtools::SerializationInfo* mapping = deserializer.si()->findMember(type);
+    const cxxtools::SerializationInfo* mapping = si.findMember(type);
     if (mapping == nullptr) {
         err << "No mapping type '" << type << "' in mapping file '" << file << "'.";
         throw std::runtime_error(err.str());
