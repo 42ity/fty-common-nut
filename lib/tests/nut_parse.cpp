@@ -1,5 +1,21 @@
-#include "fty_common_nut.h"
+/*  ========================================================================
+    Copyright (C) 2020 Eaton
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+    ========================================================================
+*/
+
 #include <catch2/catch.hpp>
+#include "fty_common_nut.h"
 #include <sstream>
 
 TEST_CASE("common nut parse test")
@@ -17,7 +33,8 @@ TEST_CASE("common nut parse test")
 
     // fty::nut::parseConfigurationFile
     {
-        static const std::string configurationFile = R"xxx([nutdev1]
+        static const std::string configurationFile = R"EOF(
+[nutdev1]
         driver = "netxml-ups"
         port = "http://10.130.33.199"
         desc = "Mosaic 4M"
@@ -49,7 +66,8 @@ TEST_CASE("common nut parse test")
         desc = Eaton ePDU MA 1P IN:C20 16A OUT:20xC13, 4xC19M
         mibs =eaton_epdu
         secLevel ="noAuthNoPriv"
-        secName= user1)xxx";
+        secName= user1
+)EOF";
 
         auto result = fty::nut::parseConfigurationFile(configurationFile);
 
@@ -69,14 +87,13 @@ TEST_CASE("common nut parse test")
 
     // fty::nut::parseScannerOutput
     {
-        static const std::string scannerOutput =
-            R"xxx(XML:driver="netxml-ups",port="http://10.130.33.199",desc="Mosaic 4M",name="nutdev1"
+        static const std::string scannerOutput = R"EOF(XML:driver="netxml-ups",port="http://10.130.33.199",desc="Mosaic 4M",name="nutdev1"
 XML:driver="netxml-ups",port="http://10.130.33.194",desc="Mosaic 4M 16M",name="nutdev2"
 SNMP:driver="snmp-ups",port="10.130.33.252",desc="ePDU MANAGED 38U-A IN L6-30P 24A 1P OUT 20xC13:4xC19",mibs="eaton_epdu",community="public",name="nutdev3"
 SNMP:driver="snmp-ups",port="10.130.33.7",desc="HP R1500 INTL UPS",mibs="pw",community="public",name="nutdev4"
 SNMP:driver="snmp-ups",port="10.130.33.151",desc="PX3-5493V",mibs="raritan-px2",community="public",name="nutdev5"
 SNMP:driver="snmp-ups",port="10.130.32.117",desc="Eaton ePDU MA 1P IN:C20 16A OUT:20xC13, 4xC19M",mibs="eaton_epdu",secLevel="noAuthNoPriv",secName="user1",name="nutdev6"
-)xxx";
+)EOF";
 
         auto result = fty::nut::parseScannerOutput(scannerOutput);
 
@@ -97,7 +114,8 @@ SNMP:driver="snmp-ups",port="10.130.32.117",desc="Eaton ePDU MA 1P IN:C20 16A OU
     // fty::nut::parseDumpOutput
     {
         // Launching the command by hand for the NetXML driver resulted in some extra junk at the beginning.
-        static const std::string         dumpOutput     = R"xxx(Network UPS Tools - network XML UPS 0.42 (2.7.4.1)
+        static const std::string dumpOutput = R"EOF(
+Network UPS Tools - network XML UPS 0.42 (2.7.4.1)
 Warning: This is an experimental driver.
 Some features may not function correctly.
 
@@ -122,15 +140,18 @@ ups.mfr: EATON
 ups.model: HP R/T3000 HV INTL UPS
 ups.model.aux: UPS LI R
 ups.type: offline / line interactive
-)xxx";
-        static const fty::nut::KeyValues expectedValues = {{"ambient.humidity.high", "90"},
+)EOF";
+
+        static const fty::nut::KeyValues expectedValues = {
+            {"ambient.humidity.high", "90"},
             {"ambient.humidity.low", "5"}, {"ambient.temperature.high", "40"}, {"ambient.temperature.low", "5"},
             {"device.contact", "Computer Room Manager"}, {"device.location", "Computer Room"}, {"device.mfr", "EATON"},
             {"device.model", "HP R/T3000 HV INTL UPS"}, {"device.type", "ups"}, {"driver.name", "netxml-ups"},
             {"driver.parameter.port", "http://10.130.33.199"}, {"input.voltage", "244"}, {"outlet.1.status", "on"},
             {"outlet.1.switchable", "yes"}, {"output.voltage", "244"}, {"output.voltage.nominal", "230"},
             {"ups.beeper.status", "disabled"}, {"ups.mfr", "EATON"}, {"ups.model", "HP R/T3000 HV INTL UPS"},
-            {"ups.model.aux", "UPS LI R"}, {"ups.type", "offline / line interactive"}};
+            {"ups.model.aux", "UPS LI R"}, {"ups.type", "offline / line interactive"}
+        };
 
         auto result = fty::nut::parseDumpOutput(dumpOutput);
 
@@ -153,9 +174,11 @@ ups.type: offline / line interactive
             "\tsecLevel = \"noAuthNoPriv\"\n"
             "\tsecName = \"user1\"\n";
 
-        static const fty::nut::DeviceConfiguration inputData = {{"name", "nutdev6"}, {"driver", "snmp-ups"},
+        static const fty::nut::DeviceConfiguration inputData = {
+            {"name", "nutdev6"}, {"driver", "snmp-ups"},
             {"port", "10.130.32.117"}, {"desc", "Eaton ePDU MA 1P IN:C20 16A OUT:20xC13, 4xC19M"},
-            {"mibs", "eaton_epdu"}, {"secLevel", "noAuthNoPriv"}, {"secName", "user1"}};
+            {"mibs", "eaton_epdu"}, {"secLevel", "noAuthNoPriv"}, {"secName", "user1"}
+        };
 
         std::stringstream ss;
         ss << inputData;

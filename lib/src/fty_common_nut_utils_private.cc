@@ -25,18 +25,16 @@
 namespace fty::nut::priv {
 
 int runCommand(
-    const std::string& cmd, const Process::Arguments& args, std::string& stdout, std::string& stderr, int timeout)
+    const std::string& cmd, const Process::Arguments& args, std::string& stdout, std::string& stderr, int timeoutSec)
 {
     std::stringstream fullCommand;
     fullCommand << cmd << " ";
     for (const auto& i : args) {
         fullCommand << i << " ";
     }
-
-    int msTimeout = timeout * 1000;
-
     std::string fullCommandStr = fullCommand.str();
-    logInfo("Running command {} (with {} seconds timeout)...", fullCommandStr, timeout);
+
+    logInfo("Running command {} (with {} seconds timeout)...", fullCommandStr, timeoutSec);
 
     Process proc(cmd, args, Capture::Out | Capture::Err);
     if (auto pid = proc.run(); !pid) {
@@ -44,8 +42,8 @@ int runCommand(
         return -1;
     }
 
-    const int WAIT_TIMEOUT_LOOP = 2000;
-    int count = msTimeout / WAIT_TIMEOUT_LOOP;
+    const int WAIT_TIMEOUT_LOOP = 2000; // msec
+    int count = (timeoutSec * 1000) / WAIT_TIMEOUT_LOOP;
     if (count < 1) count = 1;
     bool resulOk = false;
     std::string tmp;

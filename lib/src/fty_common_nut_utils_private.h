@@ -25,6 +25,6 @@
 namespace fty::nut::priv {
 
 int runCommand(
-    const std::string& cmd, const Process::Arguments& args, std::string& stdout, std::string& stderr, int timeout);
+    const std::string& cmd, const Process::Arguments& args, std::string& stdout, std::string& stderr, int timeoutSec);
 
 }
