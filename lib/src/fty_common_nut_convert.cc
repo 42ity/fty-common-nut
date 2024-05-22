@@ -20,12 +20,12 @@
 */
 
 #include "fty_common_nut_convert.h"
+#include <fty_common_json.h>
 #include <cxxtools/serializationinfo.h>
-#include <fstream>
 #include <fty_log.h>
+#include <fstream>
 #include <iostream>
 #include <regex>
-#include <fty_common_json.h>
 
 namespace fty::nut {
 

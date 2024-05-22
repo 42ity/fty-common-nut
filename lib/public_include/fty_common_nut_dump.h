@@ -20,6 +20,7 @@
 */
 
 #pragma once
+
 #include <fty_common_nut_types.h>
 #include <fty_security_wallet.h>
 
