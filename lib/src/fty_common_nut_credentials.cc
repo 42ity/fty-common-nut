@@ -44,6 +44,27 @@ static const std::map<secw::Snmpv3PrivProtocol, std::string> s_privMapping{
     {secw::AES256, "AES256"},
 };
 
+// escape hashtags to respect NUT config protocol specifications
+static std::string escapeHashtags(const std::string& input)
+{
+    const std::string token{"#"};
+    const std::string value{"\\#"}; // escaped #
+
+    // replace any token by value in ret
+    std::string ret{input};
+    size_t pos{0};
+    do {
+        pos = ret.find(token, pos);
+        if (pos == std::string::npos) {
+            break;
+        }
+        ret.replace(pos, token.size(), value);
+        pos += value.size();
+    } while(1);
+
+    return ret;
+}
+
 KeyValues convertSecwDocumentToKeyValues(const secw::DocumentPtr& doc, const std::string& driver)
 {
     if (driver.find_first_of("snmp-ups") == 0) {
@@ -51,7 +72,7 @@ KeyValues convertSecwDocumentToKeyValues(const secw::DocumentPtr& doc, const std
         secw::Snmpv3Ptr snmpv3 = secw::Snmpv3::tryToCast(doc);
 
         if (snmpv1) {
-            return {{"community", snmpv1->getCommunityName()}};
+            return {{"community", escapeHashtags(snmpv1->getCommunityName())}};
         } else if (snmpv3) {
             KeyValues output{
                 {"snmp_version", "v3"},
