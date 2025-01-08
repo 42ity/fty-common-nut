@@ -44,36 +44,53 @@ static const std::map<secw::Snmpv3PrivProtocol, std::string> s_privMapping{
     {secw::AES256, "AES256"},
 };
 
-// escape hashtags to respect NUT config protocol specifications
-static std::string escapeHashtags(const std::string& input)
+// apply NUT conf specifications on the given OUTPUT
+// escape special chars in ouput values to respect NUT config protocol specs
+// OUTPUT is changed
+static void applyCompatNUTConf(KeyValues& output)
 {
-    const std::string token{"#"};
-    const std::string value{"\\#"}; // escaped #
+    // (token, value) substitution pairs dictionnary
+    const std::vector<std::pair<std::string, std::string>> dict = {
+        {"#", "\\#"}, // escape hashtag
+        {"\"", "\\\""}, // escape quote
+    };
 
-    // replace any token by value in ret
-    std::string ret{input};
-    size_t pos{0};
-    do {
-        pos = ret.find(token, pos);
-        if (pos == std::string::npos) {
-            break;
+    // dictionnary token/value substitution in S
+    // S is changed
+    auto substitute = [&dict](std::string& s)
+    {
+        for (auto& d : dict) {
+            auto& token{d.first};
+            auto& value{d.second};
+
+            std::size_t pos = s.find(token, 0);
+            while (pos != std::string::npos) {
+                s.replace(pos, token.size(), value);
+                pos = s.find(token, pos + value.size());
+            }
         }
-        ret.replace(pos, token.size(), value);
-        pos += value.size();
-    } while(1);
+    };
 
-    return ret;
+    for (auto& it : output) {
+        substitute(it.second);
+    }
 }
 
 KeyValues convertSecwDocumentToKeyValues(const secw::DocumentPtr& doc, const std::string& driver)
 {
-    if (driver.find_first_of("snmp-ups") == 0) {
+    if (driver.find("snmp-ups") == 0) { // support dmf extension
         secw::Snmpv1Ptr snmpv1 = secw::Snmpv1::tryToCast(doc);
-        secw::Snmpv3Ptr snmpv3 = secw::Snmpv3::tryToCast(doc);
-
         if (snmpv1) {
-            return {{"community", escapeHashtags(snmpv1->getCommunityName())}};
-        } else if (snmpv3) {
+            KeyValues output{
+                {"community", snmpv1->getCommunityName()},
+            };
+
+            applyCompatNUTConf(output);
+            return output;
+        }
+
+        secw::Snmpv3Ptr snmpv3 = secw::Snmpv3::tryToCast(doc);
+        if (snmpv3) {
             KeyValues output{
                 {"snmp_version", "v3"},
                 {"secName", snmpv3->getSecurityName()},
@@ -90,25 +107,32 @@ KeyValues convertSecwDocumentToKeyValues(const secw::DocumentPtr& doc, const std
                 }
             }
 
+            applyCompatNUTConf(output);
             return output;
-        } else {
-            throw std::runtime_error(
-                (std::string("Bad security wallet document type ") + doc->getType() + " for driver snmp-ups.").c_str());
         }
-    } else if (driver == "etn-nut-powerconnect") {
-        secw::UserAndPasswordPtr creds = secw::UserAndPassword::tryToCast(doc);
 
-        if (creds) {
-            return {{"username", creds->getUsername()}, {"password", creds->getPassword()}};
-        } else {
-            throw std::runtime_error((std::string("Bad security wallet document type ") + doc->getType() +
-                                      " for driver etn-nut-powerconnect.")
-                                         .c_str());
-        }
-    } else {
-        throw std::runtime_error(
-            (std::string("Unknown driver ") + driver + " for security wallet document conversion.").c_str());
+        const std::string err{"Bad security wallet document type " + doc->getType() + " for driver " + driver + "."};
+        throw std::runtime_error(err);
     }
+
+    if (driver == "etn-nut-powerconnect") {
+        secw::UserAndPasswordPtr creds = secw::UserAndPassword::tryToCast(doc);
+        if (creds) {
+            KeyValues output{
+                {"username", creds->getUsername()},
+                {"password", creds->getPassword()},
+            };
+
+            applyCompatNUTConf(output);
+            return output;
+        }
+
+        const std::string err{"Bad security wallet document type " + doc->getType() + " for driver " + driver + "."};
+        throw std::runtime_error(err);
+    }
+
+    const std::string err{"Unknown driver " + driver + " for security wallet document conversion."};
+    throw std::runtime_error(err);
 }
 
 } // namespace fty::nut
