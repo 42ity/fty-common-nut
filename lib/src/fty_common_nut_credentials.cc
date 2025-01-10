@@ -23,36 +23,15 @@
 
 namespace fty::nut {
 
-static const std::map<secw::Snmpv3SecurityLevel, std::string> s_secMapping{
-    {secw::NO_AUTH_NO_PRIV, "noAuthNoPriv"},
-    {secw::AUTH_NO_PRIV, "authNoPriv"},
-    {secw::AUTH_PRIV, "authPriv"},
-};
-
-static const std::map<secw::Snmpv3AuthProtocol, std::string> s_authMapping{
-    {secw::MD5, "MD5"},
-    {secw::SHA, "SHA"},
-    {secw::SHA256, "SHA256"},
-    {secw::SHA384, "SHA384"},
-    {secw::SHA512, "SHA512"},
-};
-
-static const std::map<secw::Snmpv3PrivProtocol, std::string> s_privMapping{
-    {secw::DES, "DES"},
-    {secw::AES, "AES"},
-    {secw::AES192, "AES192"},
-    {secw::AES256, "AES256"},
-};
-
 // apply NUT conf specifications on the given OUTPUT
-// escape special chars in ouput values to respect NUT config protocol specs
+// escape special chars in output values to respect NUT config protocol specs
 // OUTPUT is changed
 static void applyCompatNUTConf(KeyValues& output)
 {
     // (token, value) substitution pairs dictionnary
     const std::vector<std::pair<std::string, std::string>> dict = {
-        {"#", "\\#"}, // escape hashtag
-        {"\"", "\\\""}, // escape quote
+        {"#", "\\#"}, // escape hashtag (comment starter)
+        {"\"", "\\\""}, // escape quote (key/value delimiter)
     };
 
     // dictionnary token/value substitution in S
@@ -91,6 +70,25 @@ KeyValues convertSecwDocumentToKeyValues(const secw::DocumentPtr& doc, const std
 
         secw::Snmpv3Ptr snmpv3 = secw::Snmpv3::tryToCast(doc);
         if (snmpv3) {
+            static const std::map<secw::Snmpv3SecurityLevel, std::string> s_secMapping{
+                {secw::NO_AUTH_NO_PRIV, "noAuthNoPriv"},
+                {secw::AUTH_NO_PRIV, "authNoPriv"},
+                {secw::AUTH_PRIV, "authPriv"},
+            };
+            static const std::map<secw::Snmpv3AuthProtocol, std::string> s_authMapping{
+                {secw::MD5, "MD5"},
+                {secw::SHA, "SHA"},
+                {secw::SHA256, "SHA256"},
+                {secw::SHA384, "SHA384"},
+                {secw::SHA512, "SHA512"},
+            };
+            static const std::map<secw::Snmpv3PrivProtocol, std::string> s_privMapping{
+                {secw::DES, "DES"},
+                {secw::AES, "AES"},
+                {secw::AES192, "AES192"},
+                {secw::AES256, "AES256"},
+            };
+
             KeyValues output{
                 {"snmp_version", "v3"},
                 {"secName", snmpv3->getSecurityName()},
@@ -123,7 +121,8 @@ KeyValues convertSecwDocumentToKeyValues(const secw::DocumentPtr& doc, const std
                 {"password", creds->getPassword()},
             };
 
-            applyCompatNUTConf(output);
+            // Don't handle NUT conf compatibility here.
+            // nut/common/parseconf.c is **not used** for the powerconnect driver stuffs :/
             return output;
         }
 
