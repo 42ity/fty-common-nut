@@ -23,36 +23,72 @@
 
 namespace fty::nut {
 
-static const std::map<secw::Snmpv3SecurityLevel, std::string> s_secMapping{
-    {secw::NO_AUTH_NO_PRIV, "noAuthNoPriv"},
-    {secw::AUTH_NO_PRIV, "authNoPriv"},
-    {secw::AUTH_PRIV, "authPriv"},
-};
+// apply NUT conf specifications on the given OUTPUT
+// escape special chars in output values to respect NUT config protocol specs
+// OUTPUT is changed
+static void applyCompatNUTConf(KeyValues& output)
+{
+    // (token, value) substitution pairs dictionnary
+    const std::vector<std::pair<std::string, std::string>> dict = {
+        {"#", "\\#"}, // escape hashtag (comment starter)
+        {"\"", "\\\""}, // escape quote (key/value delimiter)
+    };
 
-static const std::map<secw::Snmpv3AuthProtocol, std::string> s_authMapping{
-    {secw::MD5, "MD5"},
-    {secw::SHA, "SHA"},
-    {secw::SHA256, "SHA256"},
-    {secw::SHA384, "SHA384"},
-    {secw::SHA512, "SHA512"},
-};
+    // dictionnary token/value substitution in S
+    // S is changed
+    auto substitute = [&dict](std::string& s)
+    {
+        for (auto& d : dict) {
+            auto& token{d.first};
+            auto& value{d.second};
 
-static const std::map<secw::Snmpv3PrivProtocol, std::string> s_privMapping{
-    {secw::DES, "DES"},
-    {secw::AES, "AES"},
-    {secw::AES192, "AES192"},
-    {secw::AES256, "AES256"},
-};
+            std::size_t pos = s.find(token, 0);
+            while (pos != std::string::npos) {
+                s.replace(pos, token.size(), value);
+                pos = s.find(token, pos + value.size());
+            }
+        }
+    };
+
+    for (auto& it : output) {
+        substitute(it.second);
+    }
+}
 
 KeyValues convertSecwDocumentToKeyValues(const secw::DocumentPtr& doc, const std::string& driver)
 {
-    if (driver.find_first_of("snmp-ups") == 0) {
+    if (driver.find("snmp-ups") == 0) { // support dmf extension
         secw::Snmpv1Ptr snmpv1 = secw::Snmpv1::tryToCast(doc);
-        secw::Snmpv3Ptr snmpv3 = secw::Snmpv3::tryToCast(doc);
-
         if (snmpv1) {
-            return {{"community", snmpv1->getCommunityName()}};
-        } else if (snmpv3) {
+            KeyValues output{
+                {"community", snmpv1->getCommunityName()},
+            };
+
+            applyCompatNUTConf(output);
+            return output;
+        }
+
+        secw::Snmpv3Ptr snmpv3 = secw::Snmpv3::tryToCast(doc);
+        if (snmpv3) {
+            static const std::map<secw::Snmpv3SecurityLevel, std::string> s_secMapping{
+                {secw::NO_AUTH_NO_PRIV, "noAuthNoPriv"},
+                {secw::AUTH_NO_PRIV, "authNoPriv"},
+                {secw::AUTH_PRIV, "authPriv"},
+            };
+            static const std::map<secw::Snmpv3AuthProtocol, std::string> s_authMapping{
+                {secw::MD5, "MD5"},
+                {secw::SHA, "SHA"},
+                {secw::SHA256, "SHA256"},
+                {secw::SHA384, "SHA384"},
+                {secw::SHA512, "SHA512"},
+            };
+            static const std::map<secw::Snmpv3PrivProtocol, std::string> s_privMapping{
+                {secw::DES, "DES"},
+                {secw::AES, "AES"},
+                {secw::AES192, "AES192"},
+                {secw::AES256, "AES256"},
+            };
+
             KeyValues output{
                 {"snmp_version", "v3"},
                 {"secName", snmpv3->getSecurityName()},
@@ -69,25 +105,33 @@ KeyValues convertSecwDocumentToKeyValues(const secw::DocumentPtr& doc, const std
                 }
             }
 
+            applyCompatNUTConf(output);
             return output;
-        } else {
-            throw std::runtime_error(
-                (std::string("Bad security wallet document type ") + doc->getType() + " for driver snmp-ups.").c_str());
         }
-    } else if (driver == "etn-nut-powerconnect") {
-        secw::UserAndPasswordPtr creds = secw::UserAndPassword::tryToCast(doc);
 
-        if (creds) {
-            return {{"username", creds->getUsername()}, {"password", creds->getPassword()}};
-        } else {
-            throw std::runtime_error((std::string("Bad security wallet document type ") + doc->getType() +
-                                      " for driver etn-nut-powerconnect.")
-                                         .c_str());
-        }
-    } else {
-        throw std::runtime_error(
-            (std::string("Unknown driver ") + driver + " for security wallet document conversion.").c_str());
+        const std::string err{"Bad security wallet document type " + doc->getType() + " for driver " + driver + "."};
+        throw std::runtime_error(err);
     }
+
+    if (driver == "etn-nut-powerconnect") {
+        secw::UserAndPasswordPtr creds = secw::UserAndPassword::tryToCast(doc);
+        if (creds) {
+            KeyValues output{
+                {"username", creds->getUsername()},
+                {"password", creds->getPassword()},
+            };
+
+            // Don't handle NUT conf compatibility here.
+            // nut/common/parseconf.c is **not used** for the powerconnect driver stuffs :/
+            return output;
+        }
+
+        const std::string err{"Bad security wallet document type " + doc->getType() + " for driver " + driver + "."};
+        throw std::runtime_error(err);
+    }
+
+    const std::string err{"Unknown driver " + driver + " for security wallet document conversion."};
+    throw std::runtime_error(err);
 }
 
 } // namespace fty::nut
