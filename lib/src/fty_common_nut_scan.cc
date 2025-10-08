@@ -24,6 +24,8 @@
 #include "fty_common_nut_utils_private.h"
 #include "fty_common_nut_parse.h"
 
+#include <algorithm> //transform
+
 namespace fty::nut {
 
 static std::map<ScanProtocol, std::string> s_scanProtocols{
@@ -37,7 +39,6 @@ static std::map<ScanProtocol, std::string> s_driverProtocols{
     {SCAN_PROTOCOL_SNMP, "snmp-ups"},
     {SCAN_PROTOCOL_SNMP_DMF, "snmp-ups"},
 };
-
 
 DeviceConfigurations scanDevice(ScanProtocol protocol, const std::string& ipAddress, unsigned timeout,
     const std::vector<secw::DocumentPtr>& documents)
